@@ -93,7 +93,17 @@ def opencsvfile(filename):
 def validatetree(tree, xfile, yfile):
     nodes = readNodesFromCSV(xfile, yfile)
     for node in nodes:
-        decision = predictFromNode(node, tree)
+        decision = tree.predictFromNode(node)
+        result = node.result
+
+        if (result == decision):
+            numcorrect = numcorrect + 1
+        else:
+            numfalse = numfalse + 1
+
+    accuracy = numcorrect / (numcorrect + numfalse)
+    print ("Accuracy of validating tree: ", accuracy)
+    return accuracy
 
 class datanode:
     def __init__(self, featattr, result):
@@ -108,31 +118,25 @@ class decisionnode:
         self.feature, self.threshold = computeOptimalSplit(nodes)
         firsthalf  = list( filter(lambda x: x.averages[self.feature] < self.threshold, nodes))
         secondhalf = list( filter(lambda x: x.averages[self.feature] >= self.threshold, nodes))
-        (self.truenode, self.falsenode) = (None, None)
+        (self.lessnode, self.morenode) = (None, None)
 
         #Leaf node if all data has same value
         if (firsthalf == [] or secondhalf == []):
             self.nodes = nodes
         else:
             #Find which child node is more true
-            firsthalfpercenttrue = sum( list( map(lambda x: x.result, firsthalf ) ) ) / len(firsthalf)
-            secondhalfpercenttrue = sum( list( map(lambda x: x.result, secondhalf ) ) ) / len(secondhalf)
-    
-            if firsthalfpercenttrue > secondhalfpercenttrue:
-                self.falsenode = decisionnode(secondhalf)
-                self.truenode = decisionnode(firsthalf)
-            else:
-                self.truenode = decisionnode(secondhalf)
-                self.falsenode = decisionnode(firsthalf)
+            self.lessnode = decisionnode(firsthalf)
+            self.morenode = decisionnode(secondhalf)
 
     def predictFromDataNode(self, datanode):
         if (self.nodes != []):
             if (datanode.averages[self.feature] > self.threshold):
-                self.lessnode.predictFromDataNode(datanode)
+                prediction = self.lessnode.predictFromDataNode(datanode)
             else:
-                self.morenode.predictFromDataNode(datanode)
+                prediction = self.morenode.predictFromDataNode(datanode)
         else:
-            prediction = 
+            prediction = int( round( reduce( (lambda x,y: x + y), self.nodes) / len(self.nodes)))
+        return prediction
 
 
 #print("Entropy: ", computeEntropy(3,4))
