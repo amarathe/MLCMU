@@ -3,7 +3,12 @@
 import csv
 import math
 
-def computeOptimalSplit(xfile, yfile):
+def buildOptimalTree(xfile, yfile):
+    tree = decisionnode(nodes)
+    nodes = readNodesFromCSV(xfile, yfile)
+    return tree
+
+def readNodesFromCSV(xfile, yfile)
     xlines = opencsvfile(xfile)
     ylines = opencsvfile(yfile)
 
@@ -11,13 +16,18 @@ def computeOptimalSplit(xfile, yfile):
     for i in range(len(xlines)):
         nodes += [datanode(xlines[i], ylines[i][0])]
 
+    return nodes
+
+def computeOptimalSplit(nodes):
+
     originalentropy = entropyOfNodes(nodes)
     print ("DEBUG: entropy of nodes: ", originalentropy)
+    print ("DEBUG: nodes: ", list(map( lambda x: x.result, nodes)))
 
     nodes.sort( key = lambda x: x.averages[0] )
 
     minentropy = 1
-    bestfeature = -1
+    bestfeature = 0
     bestthreshold = 0
     #Feature vector has 10 characteristics
     for characteristic in range(10):
@@ -39,7 +49,7 @@ def computeOptimalSplit(xfile, yfile):
 def findThreshold(nodes, characteristic):
     minentropy = 1
     minthreshold = 0
-    numnode = -1
+    numnode = 0
     for i, node in enumerate (nodes[1:]):
         totalnodes = len(nodes)
         lastfeaturevalue = nodes[i].averages[characteristic] 
@@ -80,6 +90,10 @@ def opencsvfile(filename):
         csvreader = csv.reader(csvfile)    
         return list(csvreader)
 
+def validatetree(tree, xfile, yfile):
+    nodes = readNodesFromCSV(xfile, yfile)
+    for node in nodes:
+        decision = predictFromNode(node, tree)
 
 class datanode:
     def __init__(self, featattr, result):
@@ -89,7 +103,38 @@ class datanode:
         self.maxattrs = featattr[20:30]
         self.result = int(result)
 
+class decisionnode:
+    def __init__(self, nodes):
+        self.feature, self.threshold = computeOptimalSplit(nodes)
+        firsthalf  = list( filter(lambda x: x.averages[self.feature] < self.threshold, nodes))
+        secondhalf = list( filter(lambda x: x.averages[self.feature] >= self.threshold, nodes))
+        (self.truenode, self.falsenode) = (None, None)
+
+        #Leaf node if all data has same value
+        if (firsthalf == [] or secondhalf == []):
+            self.nodes = nodes
+        else:
+            #Find which child node is more true
+            firsthalfpercenttrue = sum( list( map(lambda x: x.result, firsthalf ) ) ) / len(firsthalf)
+            secondhalfpercenttrue = sum( list( map(lambda x: x.result, secondhalf ) ) ) / len(secondhalf)
+    
+            if firsthalfpercenttrue > secondhalfpercenttrue:
+                self.falsenode = decisionnode(secondhalf)
+                self.truenode = decisionnode(firsthalf)
+            else:
+                self.truenode = decisionnode(secondhalf)
+                self.falsenode = decisionnode(firsthalf)
+
+    def predictFromDataNode(self, datanode):
+        if (self.nodes != []):
+            if (datanode.averages[self.feature] > self.threshold):
+                self.lessnode.predictFromDataNode(datanode)
+            else:
+                self.morenode.predictFromDataNode(datanode)
+        else:
+            prediction = 
+
 
 #print("Entropy: ", computeEntropy(3,4))
-computeOptimalSplit("testX.csv", "testY.csv")
+buildOptimalTree("testX.csv", "testY.csv")
 
