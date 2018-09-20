@@ -2,13 +2,14 @@
 
 import csv
 import math
+from functools import reduce
 
 def buildOptimalTree(xfile, yfile):
-    tree = decisionnode(nodes)
     nodes = readNodesFromCSV(xfile, yfile)
+    tree = decisionnode(nodes)
     return tree
 
-def readNodesFromCSV(xfile, yfile)
+def readNodesFromCSV(xfile, yfile):
     xlines = opencsvfile(xfile)
     ylines = opencsvfile(yfile)
 
@@ -22,7 +23,7 @@ def computeOptimalSplit(nodes):
 
     originalentropy = entropyOfNodes(nodes)
     print ("DEBUG: entropy of nodes: ", originalentropy)
-    print ("DEBUG: nodes: ", list(map( lambda x: x.result, nodes)))
+#    print ("DEBUG: nodes: ", list(map( lambda x: x.result, nodes)))
 
     nodes.sort( key = lambda x: x.averages[0] )
 
@@ -35,7 +36,7 @@ def computeOptimalSplit(nodes):
 #        print ("DEBUG: all nodes char:", list(map( lambda x: x.averages[characteristic], nodes)))
         #Get all possible threshold splits for the feature
         (threshold, entropy, numnode) = findThreshold(nodes, characteristic)
-        print ("INFO:\t gain of splitting against feature:", characteristic, "is: ", originalentropy - entropy, "with threshold:", threshold, " node: ", numnode)
+#        print ("INFO:\t gain of splitting against feature:", characteristic, "is: ", originalentropy - entropy, "with threshold:", threshold, " node: ", numnode)
 
         if (entropy < minentropy):
             minentropy = entropy
@@ -90,10 +91,11 @@ def opencsvfile(filename):
         csvreader = csv.reader(csvfile)    
         return list(csvreader)
 
-def validatetree(tree, xfile, yfile):
+def validateTree(tree, xfile, yfile):
     nodes = readNodesFromCSV(xfile, yfile)
+    (numfalse, numcorrect) = (0, 0)
     for node in nodes:
-        decision = tree.predictFromNode(node)
+        decision = tree.predictFromDataNode(node)
         result = node.result
 
         if (result == decision):
@@ -127,18 +129,21 @@ class decisionnode:
             #Find which child node is more true
             self.lessnode = decisionnode(firsthalf)
             self.morenode = decisionnode(secondhalf)
+            self.nodes = []
 
     def predictFromDataNode(self, datanode):
-        if (self.nodes != []):
-            if (datanode.averages[self.feature] > self.threshold):
+        if (self.nodes == []):
+            if (datanode.averages[self.feature] < self.threshold):
                 prediction = self.lessnode.predictFromDataNode(datanode)
             else:
                 prediction = self.morenode.predictFromDataNode(datanode)
         else:
-            prediction = int( round( reduce( (lambda x,y: x + y), self.nodes) / len(self.nodes)))
+            prediction = sum(node.result for node in self.nodes) / len(self.nodes)
+#            prediction = int( round( reduce( (lambda x,y: x.result + y.result), self.nodes) / len(self.nodes)))
         return prediction
 
 
 #print("Entropy: ", computeEntropy(3,4))
-buildOptimalTree("testX.csv", "testY.csv")
+decisiontree = buildOptimalTree("trainX.csv", "trainY.csv")
+validateTree(decisiontree, "validationX.csv", "validationY.csv")
 
